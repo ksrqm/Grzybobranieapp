@@ -37,7 +37,7 @@ fun AppRoot() {
 
     // Gest/przycisk „wstecz” na mapie wraca na ekran główny.
     BackHandler(enabled = pagerState.currentPage == 0) {
-        scope.launch { pagerState.animateScrollToPage(1) }
+        scope.launch { pagerState.scrollToPage(1) }
     }
 
     Scaffold(
@@ -45,7 +45,7 @@ fun AppRoot() {
         bottomBar = {
             BottomBar(
                 currentPage = pagerState.currentPage,
-                onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } },
+                onSelect = { page -> scope.launch { pagerState.scrollToPage(page) } },
             )
         },
     ) { padding ->

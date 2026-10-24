@@ -407,9 +407,6 @@ private fun TripCard(trip: TripSummary) {
     }
 }
 
-@Composable
-
-/** "za 2 h 14 min", or "po zachodzie" once the sun is down. */
 private fun countdown(now: ZonedDateTime, sunset: ZonedDateTime): String {
     val d = Duration.between(now, sunset)
     if (d.isNegative) return "po zachodzie"
