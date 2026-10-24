@@ -13,7 +13,6 @@ val OnLime = Color(0xFF0E1411)
 val Muted = Color(0xFF9AA79F)
 val Amber = Color(0xFFE8A33D)
 val Danger = Color(0xFFE5675B)
-
 val Blue = Color(0xFF7FA8E8)
 
 private val GrzybColors = darkColorScheme(

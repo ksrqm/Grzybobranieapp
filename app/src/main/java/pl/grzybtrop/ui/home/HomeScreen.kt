@@ -73,6 +73,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.material.icons.outlined.Bedtime
 import pl.grzybtrop.ui.theme.Blue
+import androidx.compose.foundation.layout.WindowInsets
 
 private val PL = Locale("pl", "PL")
 private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm", PL)
@@ -138,7 +139,7 @@ fun HomeScreen(
 
     Scaffold(
         containerColor = Bg,
-        bottomBar = { BottomBar() },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         Column(
             modifier = Modifier
@@ -407,30 +408,6 @@ private fun TripCard(trip: TripSummary) {
 }
 
 @Composable
-private fun BottomBar() {
-    NavigationBar(containerColor = SurfaceColor) {
-        val items = listOf(
-            Triple("Mapa", Icons.Outlined.Map, false),
-            Triple("Spacer", Icons.Outlined.Route, true),
-            Triple("Znaleziska", Icons.Outlined.Eco, false),
-        )
-        items.forEach { (label, icon, selected) ->
-            NavigationBarItem(
-                selected = selected,
-                onClick = { /* TODO: navigation */ },
-                icon = { Icon(icon, contentDescription = label) },
-                label = { Text(label, fontSize = 12.sp) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Lime,
-                    selectedTextColor = Lime,
-                    indicatorColor = Border,
-                    unselectedIconColor = Muted,
-                    unselectedTextColor = Muted,
-                ),
-            )
-        }
-    }
-}
 
 /** "za 2 h 14 min", or "po zachodzie" once the sun is down. */
 private fun countdown(now: ZonedDateTime, sunset: ZonedDateTime): String {
