@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import pl.grzybtrop.ui.home.HomeRoute
 import pl.grzybtrop.ui.theme.GrzybTropTheme
 import org.maplibre.android.MapLibre
 import pl.grzybtrop.ui.AppRoot

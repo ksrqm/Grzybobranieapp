@@ -14,7 +14,7 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 
-private const val STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
+private const val STYLE_URL = "https://tiles.openfreemap.org/styles/dark"
 
 @Composable
 fun MapScreen(modifier: Modifier = Modifier) {
