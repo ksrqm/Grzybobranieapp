@@ -28,16 +28,45 @@ import pl.grzybtrop.ui.theme.Border
 import pl.grzybtrop.ui.theme.Lime
 import pl.grzybtrop.ui.theme.Muted
 import pl.grzybtrop.ui.theme.Surface as SurfaceColor
-
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import pl.grzybtrop.ui.map.rememberEnsureLocation
+import pl.grzybtrop.ui.map.CarViewModel
 @Composable
 fun AppRoot() {
-    // Strona 0 = mapa, strona 1 = ekran główny. Startujemy na 1.
     val pagerState = rememberPagerState(initialPage = 1) { 2 }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    // Gest/przycisk „wstecz” na mapie wraca na ekran główny.
+    val carViewModel: CarViewModel = viewModel()
+    val car by carViewModel.car.collectAsStateWithLifecycle()
+    val placing by carViewModel.placing.collectAsStateWithLifecycle()
+
+    // Kliknięcie „Zaznacz miejsce samochodu”: najpierw upewnij się, że lokalizacja działa
+    val startMarkingCar = rememberEnsureLocation(
+        onReady = {
+            carViewModel.startPlacing()
+            scope.launch { pagerState.scrollToPage(0) }
+        },
+        onDenied = {
+            Toast.makeText(
+                context, "Żeby zaznaczyć samochód, włącz lokalizację", Toast.LENGTH_LONG
+            ).show()
+        },
+    )
+
+    // Wyjście z mapy kończy wybieranie miejsca
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != 0) carViewModel.cancelPlacing()
+    }
+
     BackHandler(enabled = pagerState.currentPage == 0) {
-        scope.launch { pagerState.animateScrollToPage(1) }
+        carViewModel.cancelPlacing()
+        scope.launch { pagerState.scrollToPage(1) }
     }
 
     Scaffold(
@@ -45,21 +74,36 @@ fun AppRoot() {
         bottomBar = {
             BottomBar(
                 currentPage = pagerState.currentPage,
-                onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } },
+                onSelect = { page -> scope.launch { pagerState.scrollToPage(page) } },
             )
         },
     ) { padding ->
         HorizontalPager(
             state = pagerState,
-            userScrollEnabled = false,      // brak przesuwania palcem
-            beyondViewportPageCount = 1,    // mapa zostaje w pamięci i nie traci pozycji
+            userScrollEnabled = false,
+            beyondViewportPageCount = 1,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) { page ->
             when (page) {
-                0 -> MapScreen()
-                else -> HomeRoute()
+                0 -> MapScreen(
+                    placingCar = placing,
+                    car = car,
+                    onConfirmCar = { point ->
+                        carViewModel.saveCar(point.latitude, point.longitude)
+                        Toast.makeText(context, "Zapisano miejsce samochodu", Toast.LENGTH_SHORT).show()
+                    },
+                    onCancelCar = carViewModel::cancelPlacing,
+                )
+                else -> HomeRoute(
+                    hasCar = car != null,
+                    onMarkCar = startMarkingCar,
+                    onDeleteCar = {
+                        carViewModel.deleteCar()
+                        Toast.makeText(context, "Usunięto lokalizację auta", Toast.LENGTH_SHORT).show()
+                    },
+                )
             }
         }
     }

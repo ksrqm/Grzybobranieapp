@@ -70,6 +70,10 @@ import java.util.Locale
 import androidx.compose.material.icons.outlined.Bedtime
 import pl.grzybtrop.ui.theme.Blue
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 private val PL = Locale("pl", "PL")
 private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm", PL)
@@ -77,7 +81,12 @@ private val DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM", PL)
 
 /** Stateful entry point: wires permissions, location updates and the ViewModel. */
 @Composable
-fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
+fun HomeRoute(
+    hasCar: Boolean,
+    onMarkCar: () -> Unit,
+    onDeleteCar: () -> Unit,
+    viewModel: HomeViewModel = viewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -105,6 +114,13 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
         }
     }
 
+    LifecycleResumeEffect(Unit) {
+        hasPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        onPauseOrDispose { }
+    }
+
     // Only listen to GPS while the screen is visible, to save battery.
     LifecycleStartEffect(hasPermission) {
         if (hasPermission) viewModel.startLocationUpdates()
@@ -114,15 +130,19 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
     HomeScreen(
         state = state.copy(hasLocationPermission = hasPermission),
         onStartTrip = { /* TODO: switch to the active-trip screen */ },
-        onMarkCar = { /* TODO: save current position as the car location */ },
+        onMarkCar = onMarkCar,
+        hasCar = hasCar,
+        onDeleteCar = onDeleteCar,
     )
 }
 
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    hasCar: Boolean,
     onStartTrip: () -> Unit,
     onMarkCar: () -> Unit,
+    onDeleteCar: () -> Unit,
 ) {
     // Ticks every 30 s so the sunset countdown stays fresh.
     var now by remember { mutableStateOf(ZonedDateTime.now()) }
@@ -132,6 +152,9 @@ fun HomeScreen(
             now = ZonedDateTime.now()
         }
     }
+
+    // Czy pokazać okienko „Usunąć lokalizację auta?”
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = Bg,
@@ -180,22 +203,26 @@ fun HomeScreen(
 
             Spacer(Modifier.height(12.dp))
             OutlinedButton(
-                onClick = onMarkCar,
+                onClick = { if (hasCar) showDeleteDialog = true else onMarkCar() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, Border),
+                border = BorderStroke(1.dp, if (hasCar) Danger else Border),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             ) {
                 Icon(
-                    Icons.Outlined.DirectionsCar,
+                    if (hasCar) Icons.Outlined.Delete else Icons.Outlined.DirectionsCar,
                     contentDescription = null,
-                    tint = Amber,
+                    tint = if (hasCar) Danger else Amber,
                     modifier = Modifier.size(22.dp),
                 )
                 Spacer(Modifier.width(10.dp))
-                Text("Zaznacz miejsce samochodu", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    if (hasCar) "Usuń lokalizację auta" else "Zaznacz miejsce samochodu",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                )
             }
 
             Spacer(Modifier.height(28.dp))
@@ -212,6 +239,30 @@ fun HomeScreen(
                 Spacer(Modifier.height(12.dp))
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            containerColor = SurfaceColor,
+            titleContentColor = Color.White,
+            textContentColor = Muted,
+            title = { Text("Usunąć lokalizację auta?") },
+            text = {
+                Text("Zapisane miejsce zniknie z mapy. Żeby je odzyskać, trzeba będzie zaznaczyć je ponownie.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onDeleteCar()
+                }) { Text("Usuń", color = Danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Anuluj", color = Color.White)
+                }
+            },
+        )
     }
 }
 
