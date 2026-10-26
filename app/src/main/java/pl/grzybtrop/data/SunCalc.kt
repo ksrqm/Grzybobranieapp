@@ -27,9 +27,9 @@ object SunCalc {
         val meanAnomaly = 0.9856 * t - 3.289
         val trueLongitude = norm360(
             meanAnomaly +
-                1.916 * sin(rad(meanAnomaly)) +
-                0.020 * sin(rad(2 * meanAnomaly)) +
-                282.634
+                    1.916 * sin(rad(meanAnomaly)) +
+                    0.020 * sin(rad(2 * meanAnomaly)) +
+                    282.634
         )
 
         var rightAscension = norm360(deg(atan(0.91764 * tan(rad(trueLongitude)))))
@@ -41,7 +41,7 @@ object SunCalc {
         val cosDec = cos(asin(sinDec))
 
         val cosH = (cos(rad(ZENITH_DEG)) - sinDec * sin(rad(latitude))) /
-            (cosDec * cos(rad(latitude)))
+                (cosDec * cos(rad(latitude)))
         if (cosH > 1.0 || cosH < -1.0) return null
 
         val hourAngle = (if (rising) 360.0 - deg(acos(cosH)) else deg(acos(cosH))) / 15.0

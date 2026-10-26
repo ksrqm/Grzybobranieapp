@@ -23,12 +23,21 @@ import pl.grzybtrop.data.SunCalc
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import pl.grzybtrop.data.db.AppDatabase
+import pl.grzybtrop.data.db.FindEntity
+import pl.grzybtrop.data.db.TripEntity
+import pl.grzybtrop.data.db.TripListItem
+import java.time.Instant
 
 data class TripSummary(
+    val id: Long,
     val name: String,
     val distanceKm: Double,
-    val finds: Int,
     val date: LocalDate,
+    val findsReported: Boolean,
+    val totalWeightGrams: Int,
 )
 
 data class HomeUiState(
@@ -53,6 +62,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     private val fusedClient = LocationServices.getFusedLocationProviderClient(app)
     private var updating = false
+    private val dao = AppDatabase.get(app).tripDao()
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -88,6 +98,47 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         )
         sticky?.let(::publishBattery)
     }
+    init {
+        // Lista „Ostatnie spacery” odświeża się sama, gdy zmieni się baza
+        viewModelScope.launch {
+            dao.observeRecentTrips(5).collect { items ->
+                _uiState.update { it.copy(recentTrips = items.map { item -> item.toSummary() }) }
+            }
+        }
+
+        // TYMCZASOWE: dwa przykładowe spacery, żeby zobaczyć karty. Usuniemy w etapie 1b.
+        viewModelScope.launch {
+            if (dao.countTrips() > 0) return@launch
+            val now = System.currentTimeMillis()
+            val day = 24 * 60 * 60 * 1000L
+            val hour = 60 * 60 * 1000L
+
+            val withWeight = dao.insertTrip(
+                TripEntity(
+                    name = "Las Osobowicki",
+                    startedAtMillis = now - 2 * day,
+                    endedAtMillis = now - 2 * day + 2 * hour,
+                    distanceMeters = 3400.0,
+                    findsReported = true,
+                )
+            )
+            dao.insertFinds(
+                listOf(
+                    FindEntity(tripId = withWeight, species = "Borowik szlachetny", weightGrams = 800),
+                    FindEntity(tripId = withWeight, species = "Kurka", weightGrams = 400),
+                )
+            )
+            dao.insertTrip(
+                TripEntity(
+                    name = "Lasy Milickie",
+                    startedAtMillis = now - 5 * day,
+                    endedAtMillis = now - 5 * day + 3 * hour,
+                    distanceMeters = 5100.0,
+                    findsReported = false,
+                )
+            )
+        }
+    }
 
     private fun publishBattery(intent: Intent) {
         val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
@@ -116,4 +167,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         stopLocationUpdates()
         getApplication<Application>().unregisterReceiver(batteryReceiver)
     }
+    private fun TripListItem.toSummary() = TripSummary(
+        id = id,
+        name = name,
+        distanceKm = distanceMeters / 1000.0,
+        date = Instant.ofEpochMilli(startedAtMillis).atZone(ZoneId.systemDefault()).toLocalDate(),
+        findsReported = findsReported,
+        totalWeightGrams = totalWeightGrams,
+    )
 }

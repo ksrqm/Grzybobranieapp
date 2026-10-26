@@ -443,13 +443,27 @@ private fun TripCard(trip: TripSummary) {
             Column(Modifier.weight(1f)) {
                 Text(trip.name, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(2.dp))
-                Text(
-                    "${String.format(PL, "%.1f", trip.distanceKm)} km · ${findsLabel(trip.finds)}",
-                    color = Muted,
-                    fontSize = 14.sp,
-                )
+                Text(tripSubtitle(trip), color = Muted, fontSize = 14.sp)
             }
-            Text(trip.date.format(DATE_FORMAT), color = Muted, fontSize = 14.sp)
+            Column(horizontalAlignment = Alignment.End) {
+                Text(trip.date.format(DATE_FORMAT), color = Muted, fontSize = 14.sp)
+                if (!trip.findsReported) {
+                    Spacer(Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Amber.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, Amber),
+                    ) {
+                        Text(
+                            "Dodaj wagę",
+                            color = Amber,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -461,13 +475,14 @@ private fun countdown(now: ZonedDateTime, sunset: ZonedDateTime): String {
     val m = d.minusHours(h).toMinutes()
     return if (h > 0) "za $h h $m min" else "za $m min"
 }
-
-/** Polish plural forms: 1 znalezisko, 2-4 znaleziska, 5+ znalezisk. */
-private fun findsLabel(n: Int): String {
-    val form = when {
-        n == 1 -> "znalezisko"
-        n % 10 in 2..4 && n % 100 !in 12..14 -> "znaleziska"
-        else -> "znalezisk"
+private fun tripSubtitle(trip: TripSummary): String {
+    val km = "${String.format(PL, "%.1f", trip.distanceKm)} km"
+    return when {
+        !trip.findsReported -> km
+        trip.totalWeightGrams == 0 -> "$km · bez znalezisk"
+        else -> "$km · ${formatWeight(trip.totalWeightGrams)}"
     }
-    return "$n $form"
 }
+
+private fun formatWeight(grams: Int): String =
+    if (grams >= 1000) "${String.format(PL, "%.1f", grams / 1000.0)} kg" else "$grams g"

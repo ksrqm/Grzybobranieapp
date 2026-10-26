@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -55,4 +56,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
     implementation("org.maplibre.gl:android-sdk:13.6.1")
+
+    implementation("androidx.room:room-runtime:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
 }
